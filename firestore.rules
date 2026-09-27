@@ -1,0 +1,351 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: invoices
+    // Document ID: {invoiceId}
+    // Fields:
+    //   - id: string (required)
+    //   - date: string (required)
+    //   - clientName: string (required)
+    //   - clientAddress: string (required)
+    //   - incoterms: string (optional)
+    //   - portOfDischarge: string (optional)
+    //   - carrier: string (optional)
+    //   - items: list (required)
+    //   - subtotal: number (required)
+    //   - tax: number (required)
+    //   - grandTotal: number (required)
+    //
+    // Collection: reviews
+    // Document ID: {reviewId}
+    // Fields:
+    //   - id: string (required)
+    //   - productId: number (required)
+    //   - userName: string (required)
+    //   - rating: number (required)
+    //   - comment: string (required)
+    //   - date: string (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email in ["sumon.hanwha@gmail.com", "redbird.inc.co.bd@gmail.com"] && request.auth.token.email_verified == true) ||
+          request.auth.token.firebase.sign_in_provider == 'anonymous');
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidInvoice(data) {
+      return hasRequiredFields(['id', 'date', 'clientName', 'clientAddress', 'items', 'subtotal', 'tax', 'grandTotal']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 50 &&
+             data.date is string &&
+             data.clientName is string && data.clientName.size() > 0 && data.clientName.size() < 100 &&
+             data.clientAddress is string && data.clientAddress.size() > 0 && data.clientAddress.size() < 500 &&
+             data.items is list && data.items.size() > 0 && data.items.size() < 100 &&
+             data.subtotal is number && data.subtotal >= 0 &&
+             data.tax is number && data.tax >= 0 &&
+             data.grandTotal is number && data.grandTotal >= 0 &&
+             (!('advancePaymentPercent' in data) || data.advancePaymentPercent is number) &&
+             (!('totalGrossWeight' in data) || data.totalGrossWeight is number) &&
+             (!('totalNetWeight' in data) || data.totalNetWeight is number) &&
+             (!('totalCBM' in data) || data.totalCBM is number);
+    }
+
+    function isValidEmployee(data) {
+      return hasRequiredFields(['employeeId', 'name', 'department', 'designation', 'createdAt']) &&
+             data.employeeId is string &&
+             data.name is string &&
+             data.department is string &&
+             data.designation is string &&
+             (!('phone' in data) || data.phone is string) &&
+             (!('email' in data) || data.email is string) &&
+             (!('photo' in data) || data.photo is string);
+    }
+
+    function isValidReview(data) {
+      return hasRequiredFields(['id', 'productId', 'userName', 'rating', 'comment', 'date']) &&
+             data.id is string &&
+             data.productId is number &&
+             data.userName is string && data.userName.size() > 0 && data.userName.size() < 100 &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.comment is string && data.comment.size() > 0 && data.comment.size() < 2000 &&
+             data.date is string &&
+             (!('upvotes' in data) || data.upvotes is number) &&
+             (!('downvotes' in data) || data.downvotes is number);
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['username', 'password', 'role', 'dept']) &&
+             data.username is string && data.username.size() > 0 &&
+             data.password is string && data.password.size() >= 6 &&
+             data.role is string &&
+             data.dept is string;
+    }
+
+    function isValidAgreement(data) {
+      return hasRequiredFields(['id', 'date', 'clientName', 'factoryName', 'supplierName', 'terms', 'paymentTerms', 'governingLaw']) &&
+             data.id is string && data.id.size() > 0 &&
+             data.date is string &&
+             data.clientName is string &&
+             data.factoryName is string &&
+             data.terms is string &&
+             data.paymentTerms is string;
+    }
+
+    function isValidShippingBill(data) {
+      return hasRequiredFields(['id', 'billNumber', 'carrier']) &&
+             data.id is string && data.id.size() > 0 &&
+             data.billNumber is string && data.billNumber.size() > 0 &&
+             data.carrier is string && data.carrier.size() > 0 &&
+             (!('vessel' in data) || data.vessel is string) &&
+             (!('etd' in data) || data.etd is string);
+    }
+
+    function isValidOperationalDocument(data) {
+      return hasRequiredFields(['fileName', 'type', 'size', 'uploadedAt', 'uploadedBy', 'status']) &&
+             data.fileName is string &&
+             data.type is string &&
+             data.size is number &&
+             data.uploadedBy is string &&
+             data.status is string;
+    }
+
+    function isValidCommunication(data) {
+      return hasRequiredFields(['to', 'subject', 'sentAt', 'sender']) &&
+             data.to is string &&
+             data.subject is string &&
+             data.sender is string &&
+             (!('cc' in data) || data.cc is string) &&
+             (!('bcc' in data) || data.bcc is string) &&
+             (!('body' in data) || data.body is string) &&
+             (!('attachments' in data) || data.attachments is list);
+    }
+
+    function isValidInquiry(data) {
+      return hasRequiredFields(['name', 'email', 'message', 'createdAt']) &&
+             data.name is string &&
+             data.email is string &&
+             data.message is string &&
+             (!('phone' in data) || data.phone is string) &&
+             (!('company' in data) || data.company is string) &&
+             (!('subject' in data) || data.subject is string);
+    }
+
+    function isValidTask(data) {
+      return hasRequiredFields(['name', 'status', 'createdAt', 'createdBy']) &&
+             data.name is string &&
+             data.status is string &&
+             data.createdBy is string &&
+             (!('description' in data) || data.description is string) &&
+             (!('dueDate' in data) || data.dueDate is string);
+    }
+
+    function isValidSettings(data) {
+      return (!('companyName' in data) || data.companyName is string) &&
+             (!('bankDetails' in data) || data.bankDetails is map);
+    }
+
+    function isValidExpense(data) {
+      return hasRequiredFields(['title', 'amount', 'date']) &&
+             data.title is string &&
+             data.amount is number &&
+             data.date is string;
+    }
+
+    function isValidBudget(data) {
+      return hasRequiredFields(['month', 'year', 'limit']) &&
+             data.month is string &&
+             data.year is number &&
+             data.limit is number;
+    }
+
+    function isValidSalesContract(data) {
+      return hasRequiredFields(['id', 'date', 'buyerName', 'items', 'totalAmount']) &&
+             data.id is string &&
+             data.date is string &&
+             data.buyerName is string &&
+             data.items is list &&
+             data.totalAmount is number &&
+             (!('shippingTerms' in data) || data.shippingTerms is string) &&
+             (!('portOfDischarge' in data) || data.portOfDischarge is string);
+    }
+
+    function isValidBrandGuideline(data) {
+      return data.companyName is string && data.companyName.size() > 0 &&
+             data.tagline is string &&
+             data.colorPalette is map &&
+             data.typography is map;
+    }
+
+    function isValidBuyer(data) {
+      return hasRequiredFields(['companyName', 'contactPerson']) &&
+             data.companyName is string && data.companyName.size() > 0 && data.companyName.size() < 200 &&
+             data.contactPerson is string && data.contactPerson.size() > 0 && data.contactPerson.size() < 100 &&
+             (!('email' in data) || data.email is string) &&
+             (!('phone' in data) || data.phone is string) &&
+             (!('address' in data) || data.address is string) &&
+             (!('country' in data) || data.country is string);
+    }
+
+    function isValidMemory(data) {
+      return hasRequiredFields(['userId', 'category', 'content', 'importance', 'updatedAt']) &&
+             data.userId is string &&
+             data.category is string &&
+             data.category in ['preference', 'rule', 'fact', 'interaction_pattern'] &&
+             data.content is string && data.content.size() > 0 && data.content.size() < 5000 &&
+             data.importance is number && data.importance >= 1 && data.importance <= 5;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /ai_memories/{memoryId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && isValidMemory(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid && isValidMemory(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /detailed_orders/{orderId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /buyers/{buyerId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /users/{userId} {
+      // For the custom login system to work, we need to allow searching for a user
+      allow read: if true; 
+      allow create: if isAdmin() && isValidUser(request.resource.data);
+      allow update: if (isAdmin() || (isAuthenticated() && request.auth.uid == userId)) && isValidUser(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /invoices/{invoiceId} {
+      allow read: if true; // Allow public read for verification
+      allow create, update, delete: if isAdmin() && isValidInvoice(request.resource.data);
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true; 
+      allow create: if isAuthenticated() && isValidReview(request.resource.data);
+      allow update: if isAdmin() || (isAuthenticated() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['upvotes', 'downvotes'])); 
+      allow delete: if isAdmin();
+    }
+
+    match /shipments/{shipmentId} {
+      allow read: if true; 
+      allow write: if isAdmin();
+
+      match /notes/{noteId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+
+    match /visa_invitations/{invitationId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.buyerName == request.auth.token.name);
+      allow write: if isAdmin();
+    }
+
+    match /order_plans/{planId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /agreements/{agreementId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isValidAgreement(request.resource.data);
+    }
+
+    match /shipping_bills/{billId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isValidShippingBill(request.resource.data);
+    }
+
+    match /operational_documents/{docId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isValidOperationalDocument(request.resource.data);
+    }
+
+    match /communications/{commId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isValidCommunication(request.resource.data);
+    }
+
+    match /inquiries/{inquiryId} {
+      allow read: if isAdmin();
+      allow create: if true; // Allow anyone to submit a contact form
+      allow update, delete: if isAdmin();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isValidTask(request.resource.data);
+    }
+
+    match /employees/{employeeId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isValidEmployee(request.resource.data);
+    }
+
+    match /settings/{settingId} {
+      allow read: if true; // Settings might be needed for public display
+      allow write: if isAdmin() && isValidSettings(request.resource.data);
+    }
+
+    match /expenses/{expenseId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isValidExpense(request.resource.data);
+    }
+
+    match /budgets/{budgetId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isValidBudget(request.resource.data);
+    }
+
+    match /sales_contracts/{contractId} {
+      allow read: if true; // Might need verification
+      allow write: if isAdmin() && isValidSalesContract(request.resource.data);
+    }
+
+    match /brand_guidelines/{guidelineId} {
+      // Brand strategy is internal operational data. Public reads/writes are forbidden.
+      allow read: if isAdmin();
+      allow write: if isAdmin() && isValidBrandGuideline(request.resource.data);
+    }
+
+    match /portalUsers/{userId} {
+      allow read: if true; // Client login query is public
+      allow write: if isAdmin();
+    }
+
+    match /generated_documents/{docId} {
+      // Generated trade documents may contain buyer, banking and shipment data.
+      allow read, write: if isAdmin();
+    }
+
+    match /test/{testId} {
+      allow read: if true;
+    }
+  }
+}

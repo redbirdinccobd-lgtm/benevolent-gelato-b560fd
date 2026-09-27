@@ -1,0 +1,13 @@
+{
+  "name": "Red Bird International",
+  "description": "A world-class global trade and export hub with an AI-powered administrative dashboard for seamless shipment tracking, document generation, and business management.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ],
+  "majorCapability": "GPT-6 Astra + GPT-Live",
+  "aiCore": "gpt-6-astra",
+  "voiceCore": "gpt-live-1"
+}

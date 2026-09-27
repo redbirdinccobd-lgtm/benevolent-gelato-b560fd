@@ -1,0 +1,465 @@
+{
+  "entities": {
+    "Invoice": {
+      "title": "Invoice",
+      "description": "A commercial invoice for a shipment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "The invoice ID" },
+        "date": { "type": "string", "description": "The date of the invoice" },
+        "clientName": { "type": "string", "description": "The name of the client" },
+        "clientAddress": { "type": "string", "description": "The address of the client" },
+        "incoterms": { "type": "string", "description": "The incoterms for the shipment" },
+        "portOfDischarge": { "type": "string", "description": "The port of discharge" },
+        "carrier": { "type": "string", "description": "The carrier or vessel" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "productId": { "type": "number" },
+              "name": { "type": "string" },
+              "quantity": { "type": "number" },
+              "unitPrice": { "type": "number" },
+              "total": { "type": "number" }
+            }
+          }
+        },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "grandTotal": { "type": "number" },
+        "advancePaymentPercent": { "type": "number", "description": "Percentage of payment required in advance" },
+        "status": { 
+          "type": "string", 
+          "enum": ["Shipped", "In Transit", "Delivered", "On Hold"],
+          "description": "Current status of the shipment"
+        }
+      },
+      "required": ["id", "date", "clientName", "clientAddress", "items", "subtotal", "tax", "grandTotal"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A product review",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productId": { "type": "number" },
+        "userName": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "date": { "type": "string" },
+        "upvotes": { "type": "number", "default": 0 },
+        "downvotes": { "type": "number", "default": 0 }
+      },
+      "required": ["id", "productId", "userName", "rating", "comment", "date"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A system user with specific department access",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string" },
+        "dept": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["username", "password", "role", "dept"]
+    },
+    "Agreement": {
+      "title": "Agreement",
+      "description": "A business agreement between buyer, factory and supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "clientName": { "type": "string" },
+        "factoryName": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "validUntil": { "type": "string" },
+        "terms": { "type": "string" },
+        "paymentTerms": { "type": "string" },
+        "governingLaw": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "date", "clientName", "factoryName", "supplierName", "terms", "paymentTerms", "governingLaw"]
+    },
+    "ShippingBill": {
+      "title": "Shipping Bill",
+      "description": "Details of Bill of Lading or Airway Bill",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "billNumber": { "type": "string" },
+        "carrier": { "type": "string" },
+        "vessel": { "type": "string" },
+        "etd": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "billNumber", "carrier"]
+    },
+    "OperationalDocument": {
+      "title": "Operational Document",
+      "description": "Metadata for documents uploaded to the system vault",
+      "type": "object",
+      "properties": {
+        "fileName": { "type": "string" },
+        "type": { "type": "string" },
+        "size": { "type": "number" },
+        "uploadedAt": { "type": "string", "format": "date-time" },
+        "uploadedBy": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["fileName", "type", "size", "uploadedAt", "uploadedBy", "status"]
+    },
+    "Communication": {
+      "title": "Communication",
+      "description": "Logs of external communications and emails",
+      "type": "object",
+      "properties": {
+        "to": { "type": "string" },
+        "cc": { "type": "string" },
+        "bcc": { "type": "string" },
+        "subject": { "type": "string" },
+        "body": { "type": "string" },
+        "attachments": { "type": "array", "items": { "type": "string" } },
+        "sentAt": { "type": "string", "format": "date-time" },
+        "sender": { "type": "string" },
+        "type": { "type": "string" }
+      },
+      "required": ["to", "subject", "sentAt", "sender"]
+    },
+    "Inquiry": {
+      "title": "Inquiry",
+      "description": "A customer contact inquiry",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "company": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "message", "createdAt"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A system task or reminder",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["name", "status", "createdAt", "createdBy"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "Personnel record for ID card and HR management",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string" },
+        "name": { "type": "string" },
+        "department": { "type": "string" },
+        "designation": { "type": "string" },
+        "joiningDate": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "photo": { "type": "string" },
+        "bloodGroup": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["employeeId", "name", "department", "designation", "createdAt"]
+    },
+    "SystemSettings": {
+      "title": "System Settings",
+      "description": "Global company configuration, letterhead, and banking details",
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string" },
+        "address": { "type": "string" },
+        "contact": { "type": "string" },
+        "website": { "type": "string" },
+        "email": { "type": "string" },
+        "socialMedia": { "type": "object" },
+        "logo": { "type": "string" },
+        "signature": { "type": "string" },
+        "seal": { "type": "string" },
+        "bankDetails": {
+          "type": "object",
+          "properties": {
+            "accountName": { "type": "string" },
+            "accountNumber": { "type": "string" },
+            "bankName": { "type": "string" },
+            "branch": { "type": "string" },
+            "swiftCode": { "type": "string" },
+            "address": { "type": "string" }
+          }
+        }
+      }
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Operational expense record",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "description": { "type": "string" },
+        "paidBy": { "type": "string" }
+      },
+      "required": ["title", "amount", "date"]
+    },
+    "Budget": {
+      "title": "Budget",
+      "description": "Monthly budget allocation",
+      "type": "object",
+      "properties": {
+        "month": { "type": "string" },
+        "year": { "type": "number" },
+        "limit": { "type": "number" },
+        "category": { "type": "string" }
+      },
+      "required": ["month", "year", "limit"]
+    },
+    "SalesContract": {
+      "title": "Sales Contract",
+      "description": "A binding sales agreement between buyer and Red Bird International",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "buyerName": { "type": "string" },
+        "buyerAddress": { "type": "string" },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "paymentTerms": { "type": "string" },
+        "deliveryTerms": { "type": "string" },
+        "shippingTerms": { "type": "string" },
+        "portOfDischarge": { "type": "string" },
+        "validUntil": { "type": "string" },
+        "status": { "type": "string" },
+        "invoiceId": { "type": "string" }
+      },
+      "required": ["id", "date", "buyerName", "items", "totalAmount"]
+    },
+    "ShipmentProfile": {
+      "title": "Shipment Profile",
+      "description": "A comprehensive shipment record with matrix-based items and verified documents",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "buyerName": { "type": "string" },
+        "buyerAddress": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "supplierDetails": { "type": "string" },
+        "date": { "type": "string" },
+        "portOfLoading": { "type": "string" },
+        "portOfDestination": { "type": "string" },
+        "transportMode": { "type": "string", "enum": ["Air", "Sea"] },
+        "totalCartons": { "type": "number" },
+        "totalGrossWeight": { "type": "number" },
+        "totalNetWeight": { "type": "number" },
+        "totalCBM": { "type": "number" },
+        "priceType": { "type": "string", "enum": ["Unit Price", "CIF"] },
+        "advancePercentage": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "paymentCondition": { "type": "string" },
+        "shippingTerms": { "type": "string" },
+        "portOfDischarge": { "type": "string" },
+        "items": { "type": "array" },
+        "qrCodeData": { "type": "string" },
+        "status": { "type": "string" },
+        "supplierAgreementUrl": { "type": "string" },
+        "workScheduleUrl": { "type": "string" },
+        "notes": {
+          "type": "array",
+          "description": "Internal status comments, customs milestones, and operational audit logs appended by administrators"
+        }
+      },
+      "required": ["id", "invoiceNumber", "buyerName", "items", "totalAmount"]
+    },
+    "VisaInvitation": {
+      "title": "Visa Invitation",
+      "description": "Template for buyer visa invitation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "buyerName": { "type": "string" },
+        "passportNumber": { "type": "string" },
+        "arrivalDate": { "type": "string" },
+        "content": { "type": "string" }
+      }
+    },
+    "OrderPlan": {
+      "title": "Order Plan",
+      "description": "Timeline planning for orders",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "startDate": { "type": "string" },
+        "paymentDate": { "type": "string" },
+        "shipmentDate": { "type": "string" },
+        "status": { "type": "string" }
+      }
+    },
+    "PortalUser": {
+      "title": "Portal User",
+      "description": "Secure account for buyers/partners to access the private portal",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "password": { "type": "string" },
+        "name": { "type": "string" },
+        "company": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "password", "createdAt"]
+    },
+    "BrandGuideline": {
+      "title": "Brand Guideline",
+      "description": "Comprehensive corporate brand identity guidelines including color palette, typography, and marketing assets",
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "description": { "type": "string" },
+        "brandPersonality": { "type": "array", "items": { "type": "string" } },
+        "brandVoice": { "type": "object" },
+        "colorPalette": { "type": "object" },
+        "typography": { "type": "object" },
+        "logoGuidelines": { "type": "object" },
+        "copywritingExamples": { "type": "object" },
+        "logoSymbolType": { "type": "string" },
+        "logoLetterMark": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["companyName", "tagline", "colorPalette", "typography", "logoGuidelines"]
+    },
+    "Buyer": {
+      "title": "Buyer Profile",
+      "description": "Verified international buyer profile with company details, address, contact, and trade preferences",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "companyName": { "type": "string" },
+        "contactPerson": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "country": { "type": "string" },
+        "city": { "type": "string" },
+        "address": { "type": "string" },
+        "destinationPort": { "type": "string" },
+        "taxId": { "type": "string" },
+        "defaultPaymentTerms": { "type": "string" },
+        "defaultPaymentMethod": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["companyName", "contactPerson"]
+    },
+    "AILearningMemory": {
+      "title": "AI Learning Memory",
+      "description": "Stored knowledge, preferences, and rules learned by the AI about the user or business",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "category": { "type": "string", "enum": ["preference", "rule", "fact", "interaction_pattern"] },
+        "content": { "type": "string" },
+        "context": { "type": "string", "description": "Where or when this was learned" },
+        "importance": { "type": "number", "minimum": 1, "maximum": 5 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "category", "content", "importance", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/ai_memories/{memoryId}": {
+      "schema": "AILearningMemory",
+      "description": "Long-term memory for the AI assistant"
+    },
+    "/buyers/{buyerId}": {
+      "schema": "Buyer",
+      "description": "Directory of registered international buyers and buying houses"
+    },
+    "/brand_guidelines/{guidelineId}": {
+      "schema": "BrandGuideline",
+      "description": "Generated and saved corporate brand books"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Commercial invoices"
+    },
+    "/shipments/{shipmentId}": {
+      "schema": "ShipmentProfile",
+      "description": "Detailed shipment tracking and documentation profiles"
+    },
+    "/portalUsers/{userId}": {
+      "schema": "PortalUser",
+      "description": "Registered partners for private portal access"
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Product reviews"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "System users and access control"
+    },
+    "/agreements/{agreementId}": {
+      "schema": "Agreement",
+      "description": "Business legal agreements"
+    },
+    "/shipping_bills/{billId}": {
+      "schema": "ShippingBill",
+      "description": "Shipping bills and logistics records"
+    },
+    "/operational_documents/{docId}": {
+      "schema": "OperationalDocument",
+      "description": "System vault document metadata"
+    },
+    "/communications/{commId}": {
+      "schema": "Communication",
+      "description": "Communication logs"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": "Inquiry",
+      "description": "Customer contact inquiries"
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Admin system tasks"
+    },
+    "/employees/{employeeId}": {
+      "schema": "Employee",
+      "description": "HR Employee records"
+    },
+    "/settings/{settingId}": {
+      "schema": "SystemSettings",
+      "description": "Global company settings (singleton)"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Company operational expenses"
+    },
+    "/budgets/{budgetId}": {
+      "schema": "Budget",
+      "description": "Financial budgets"
+    },
+    "/sales_contracts/{contractId}": {
+      "schema": "SalesContract",
+      "description": "Sales contracts generated from shipments"
+    }
+  }
+}
